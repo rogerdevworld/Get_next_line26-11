@@ -1,91 +1,140 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   get_next_line_utils.c                              :+:      :+:    :+:   */
+/*   get_next_line.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: carlopez <carlopez@student.42barcelon      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/11/19 10:47:28 by carlopez          #+#    #+#             */
-/*   Updated: 2024/11/20 11:44:42 by carlopez         ###   ########.fr       */
+/*   Created: 2024/11/18 12:30:53 by carlopez          #+#    #+#             */
+/*   Updated: 2024/11/26 11:59:27 by carlopez         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-int	ft_strlen(char *str)
+char	*get_next_line (int fd)
 {
-	int	i;
+	ssize_t	bytes_read;
+	char	*initial_buffer = NULL;
+	static char	*remainder;
+	int	newline_position;
+	char	*final_buffer = NULL;
 
-	//if (!str)//si le paso algo vacio el valor igual es 0 esto esta demas 
-	//	return (0);
-	i = 0;
-	while (str[i])
-		i++;
-	return (i);
+	
+	if (fd < 0 || BUFFER_SIZE <= 0)//solo por reducir lineas 
+		return (NULL);
+	initial_buffer = ft_calloc(BUFFER_SIZE + 1, sizeof(char));
+	if (!initial_buffer)
+		return (NULL);
+	bytes_read = read(fd, initial_buffer, BUFFER_SIZE);
+	//initial_buffer[bytes_read] = '\0'; esta line no es necesaria con calloc
+	if (bytes_read <= 0)
+	{
+		//final_buffer = ft_strjoin(remainder, NULL);
+		//remainder = NULL;
+		//ft_free(initial_buffer);
+		free(initial_buffer);
+		return (NULL);
+	}
+	//else if (bytes_read == 0 && !remainder)
+	//{
+	//	ft_free(&initial_buffer);
+	//	return (NULL);
+	//}
+	//final_buffer = ft_strjoin(remainder, initial_buffer);//(initial_buffer, NULL);
+	if (remainder)
+	{
+		final_buffer = ft_strjoin(remainder, "");
+		remainder = NULL;
+	}
+	else
+		final_buffer = ft_strjoin(initial_buffer, "");
+	while (bytes_read == BUFFER_SIZE && (check_newline(final_buffer) == -1))
+	{
+		bytes_read = read(fd, initial_buffer, BUFFER_SIZE);
+		if (bytes_read <= 0)
+			break;
+		initial_buffer[bytes_read] = '\0';
+		final_buffer = ft_strjoin(final_buffer, initial_buffer);
+	}
+	newline_position = check_newline(final_buffer);
+	if (newline_position > -1 && newline_position < (ft_strlen(final_buffer) - 1))
+	{
+		remainder = ft_fill_remainder(final_buffer, newline_position);
+		if (!remainder)
+			return (NULL);
+		final_buffer = ft_fill_buffer(final_buffer, newline_position);
+	}
+	return (final_buffer);
 }
 
-char	*ft_strdup(char *str)
+char	*ft_fill_buffer(char *initial_buffer, int position)
 {
+	char	*final_buffer;
 	int	i;
-	char	*str_cpy;
 
-	if (!str)
+	if (!initial_buffer || position < 0)
 		return (NULL);
-	str_cpy = malloc(ft_strlen(str) + 1);
-	if (!str_cpy)
+    int len = ft_strlen(initial_buffer);
+    if (position >= len)
+        return (NULL);
+	final_buffer = malloc((position + 2) * sizeof(char));
+	if (!final_buffer)
 		return (NULL);
 	i = 0;
-	while (str[i])
+	while (i <= position)
 	{
-		str_cpy[i] = str[i];
+		final_buffer[i] = initial_buffer[i];
 		i++;
 	}
-	str_cpy[i] = '\0';
-	return (str_cpy);
+	final_buffer[i] = '\0';
+	return (final_buffer);
 }
 
-char	*ft_strjoin(char *str, char *str2)
+char	*ft_fill_remainder(char *initial_buffer, int position)
 {
-	char	*returned_str;
+	char	*remainder;
 	int	i;
-	int	j;
+	int	len;
 
-	returned_str = malloc(ft_strlen(str) + ft_strlen(str2) + 1);
-	if (!returned_str)
+	len = ft_strlen(initial_buffer) - position;// - 1
+	remainder = malloc((len) * sizeof(char));
+	if (!remainder)
 		return (NULL);
 	i = 0;
-	while (str)// esto es lo mismo(str && str[i] != '\0')
-		returned_str[i] = str[i++];
-	//ft_free(&str);
-	j = 0;
-	while (str2)//(str2 && str2[j] != '\0') lo mismo
-		returned_str[i++] = str2[j++];
-	returned_str[i] = '\0';
-	//ft_free(&str2);
-	return (returned_str);
+	while (i < len)
+		remainder[i++] = initial_buffer[++position];
+	remainder[i] = '\0';
+	return (remainder);
 }
 
-/* esto pude ser solo una funcion y l hago para eliminar lineas del get_next_line */
-void	*ft_calloc(size_t nmemb, size_t size)
+int	check_newline(char *initial_buffer)
 {
-	void	*s;
+	int	i;
 
-	if (size == 0 || nmemb == 0)
-		return (malloc(0));
-	s = (void *)malloc(nmemb * size);
-	if (!s)
-		return (NULL);
-	ft_bzero(s, nmemb * size);
-	return (s);
+	i = -1;
+	while (initial_buffer[++i])
+	{
+		if (initial_buffer[i] == '\n')
+			return (i);
+	}
+	return (-1);
 }
 
-void	ft_bzero(void *s, size_t n)
+int	main(int argc, char **argv)
 {
-	unsigned char	*p;
-	size_t			i;
+	int	fd;
+	char	*line;
 
-	i = 0;
-	p = (unsigned char *)s;
-	while (i < n)
-		p[i++] = 0;
+	int i = 1;
+	fd = open(argv[1], O_RDONLY);
+	if (fd == -1)
+		return (-1);
+	while ((line = get_next_line(fd)) != NULL)
+	{
+		printf("line %i:%s\n", i, line);
+		free(line);
+		i++;
+	}
+	close(fd);
 }

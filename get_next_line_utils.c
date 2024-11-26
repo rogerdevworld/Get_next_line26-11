@@ -16,28 +16,26 @@ int	ft_strlen(char *str)
 {
 	int	i;
 
-	if (!str)
-		return (0);
+	//if (!str)//si le paso algo vacio el valor igual es 0 esto esta demas 
+	//	return (0);
 	i = 0;
-	while (str[i] != '\0')
+	while (str[i])
 		i++;
 	return (i);
 }
 
 char	*ft_strdup(char *str)
 {
-	int	str_len;
 	int	i;
 	char	*str_cpy;
 
 	if (!str)
 		return (NULL);
-	str_len = ft_strlen(str);
-	str_cpy = (char *)malloc((str_len + 1) * sizeof(char));
+	str_cpy = malloc(ft_strlen(str) + 1);
 	if (!str_cpy)
 		return (NULL);
 	i = 0;
-	while (str[i] != '\0')
+	while (str[i])
 	{
 		str_cpy[i] = str[i];
 		i++;
@@ -51,29 +49,43 @@ char	*ft_strjoin(char *str, char *str2)
 	char	*returned_str;
 	int	i;
 	int	j;
-	int	len;
 
-	len = ft_strlen(str) + ft_strlen(str2) + 1;
-	returned_str = (char *)malloc(len * sizeof(char));
+	returned_str = malloc(ft_strlen(str) + ft_strlen(str2) + 1);
 	if (!returned_str)
 		return (NULL);
 	i = 0;
-	if (str)
-	{
-		while (str && str[i] != '\0')
-		{
-			returned_str[i] = str[i];
-			i++;
-		}
-		ft_free(&str);
-	}
-	if (str2)
-	{
-		j = 0;
-		while (str2 && str2[j] != '\0')
-			returned_str[i++] = str2[j++];
-		returned_str[i] = '\0';
-		ft_free(&str2);
-	}
+	while (str)// esto es lo mismo(str && str[i] != '\0')
+		returned_str[i] = str[i++];
+	//ft_free(&str);
+	j = 0;
+	while (str2)//(str2 && str2[j] != '\0') lo mismo
+		returned_str[i++] = str2[j++];
+	returned_str[i] = '\0';
+	//ft_free(&str2);
 	return (returned_str);
+}
+
+/* esto pude ser solo una funcion y l hago para eliminar lineas del get_next_line */
+void	*ft_calloc(size_t nmemb, size_t size)
+{
+	void	*s;
+
+	if (size == 0 || nmemb == 0)
+		return (malloc(0));
+	s = (void *)malloc(nmemb * size);
+	if (!s)
+		return (NULL);
+	ft_bzero(s, nmemb * size);
+	return (s);
+}
+
+void	ft_bzero(void *s, size_t n)
+{
+	unsigned char	*p;
+	size_t			i;
+
+	i = 0;
+	p = (unsigned char *)s;
+	while (i < n)
+		p[i++] = 0;
 }
