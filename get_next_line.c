@@ -12,74 +12,87 @@
 
 #include "get_next_line.h"
 
-char *get_next_line(int fd)
+char	*get_next_line (int fd)
 {
-    ssize_t bytes_read;
-    char *initial_buffer;
-    static char *remainder;
-    char *final_buffer;
-    int newline_pos;
+	ssize_t	bytes_read;
+	char	*initial_buffer;
+	static char	*remainder;
+	int	newline_position;
+	char	*final_buffer;
 
-    if (fd < 0 || BUFFER_SIZE <= 0)
-        return NULL;
-
-    initial_buffer = ft_calloc(BUFFER_SIZE + 1, sizeof(char));
-    if (!initial_buffer)
-        return NULL;
-
-    final_buffer = ft_strdup(remainder ? remainder : "");
-    remainder = NULL;
-
-    bytes_read = 1;  // Inicializamos en 1 para entrar al bucle
-
-    while (bytes_read > 0)
+	
+	if (fd < 0 || BUFFER_SIZE <= 0)
+		return (NULL);
+	initial_buffer = ft_calloc(BUFFER_SIZE + 1, sizeof(char));
+	if (!initial_buffer)
+		return (NULL);
+	if (remainder)
     {
-        if (check_newline(final_buffer) != -1)
-            break;
-
+        final_buffer = ft_strdup(remainder);
+        free(remainder);
+        remainder = NULL;
+    }
+    while (1)
+    {
         bytes_read = read(fd, initial_buffer, BUFFER_SIZE);
-        if (bytes_read <= 0)
-            break;
-
-        initial_buffer[bytes_read] = '\0';  // Aseguramos que el buffer esté terminado en NULL
+		if (bytes_read <= 0)
+            return (free(initial_buffer), NULL);
+		initial_buffer[bytes_read] = '\0';
         final_buffer = ft_strjoin(final_buffer, initial_buffer);
+        if (check_newline(final_buffer) != -1)//salir \n
+            break;
     }
-
-    free(initial_buffer);
-
-    newline_pos = check_newline(final_buffer);
-    if (newline_pos != -1)
-    {
-        remainder = ft_strdup(final_buffer + newline_pos + 1);
-        if (!remainder)
-        {
-            free(final_buffer);
-            return NULL;
-        }
-        final_buffer[newline_pos + 1] = '\0';
-    }
-
-    if (bytes_read == 0 && !*final_buffer)
-    {
-        free(final_buffer);
-        return NULL;
-    }
-
-    return final_buffer;
-}
-
-int check_newline(char *buffer)
-{
-    int i = 0;
-
-    while (buffer[i])
-    {
-        if (buffer[i] == '\n')
-            return i;
-        i++;
-    }
-
-    return -1;
+	free(initial_buffer);
+	//bytes_read = read(fd, initial_buffer, BUFFER_SIZE);
+	//initial_buffer[bytes_read] = '\0'; esta line no es necesaria con calloc
+	//if (bytes_read <= 0)
+	//{
+		//final_buffer = ft_strjoin(remainder, NULL);
+		//remainder = NULL;
+		//ft_free(initial_buffer);
+	//	free(initial_buffer);
+	//	return (NULL);
+	//}
+	//else if (bytes_read == 0 && !remainder)
+	//{
+	//	ft_free(&initial_buffer);
+	//	return (NULL);
+	//}
+	//final_buffer = ft_strjoin(remainder, initial_buffer);//(initial_buffer, NULL);
+	/*
+	if (remainder)
+	{
+		final_buffer = ft_strjoin(remainder, "");
+		remainder = NULL;
+	}
+	else
+		final_buffer = ft_strjoin(initial_buffer, "");
+	while (bytes_read == BUFFER_SIZE && (check_newline(final_buffer) == -1))
+	{
+		bytes_read = read(fd, initial_buffer, BUFFER_SIZE);
+		if (bytes_read <= 0)
+			break;
+		initial_buffer[bytes_read] = '\0';
+		final_buffer = ft_strjoin(final_buffer, initial_buffer);
+	}*/
+	newline_position = check_newline(final_buffer);
+	if (newline_position != -1)// && newline_position < (ft_strlen(final_buffer) - 1)
+	{
+		remainder = ft_strdup(final_buffer + newline_position + 1);
+		if (!remainder)
+		{
+			free(final_buffer);
+			return (NULL);
+		}
+        final_buffer[newline_position + 1] = '\0';
+		//final_buffer = ft_fill_buffer(final_buffer, newline_position);
+	}
+	if (bytes_read == 0 && !*final_buffer)
+	{
+		free(final_buffer);
+        return (NULL);
+	}
+	return (final_buffer);
 }
 
 char	*ft_fill_buffer(char *initial_buffer, int position)
@@ -87,11 +100,8 @@ char	*ft_fill_buffer(char *initial_buffer, int position)
 	char	*final_buffer;
 	int	i;
 
-	if (!initial_buffer || position < 0)
+	if (!initial_buffer)
 		return (NULL);
-    int len = ft_strlen(initial_buffer);
-    if (position >= len)
-        return (NULL);
 	final_buffer = malloc((position + 2) * sizeof(char));
 	if (!final_buffer)
 		return (NULL);
@@ -111,8 +121,8 @@ char	*ft_fill_remainder(char *initial_buffer, int position)
 	int	i;
 	int	len;
 
-	len = ft_strlen(initial_buffer) - position;// - 1
-	remainder = malloc((len) * sizeof(char));
+	len = ft_strlen(initial_buffer) - position;
+	remainder = (char *)malloc((len) * sizeof(char));
 	if (!remainder)
 		return (NULL);
 	i = 0;
@@ -122,20 +132,46 @@ char	*ft_fill_remainder(char *initial_buffer, int position)
 	return (remainder);
 }
 
-int	main(int argc, char **argv)
+int	check_newline(char *initial_buffer)
+{
+	int	i;
+
+	i = -1;
+	if (!initial_buffer)
+		return (-1);
+	while (initial_buffer[++i] != '\0')
+	{
+		if (initial_buffer[i] == '\n')
+			return (i);
+	}
+	return (-1);
+}
+void	ft_free(char **str)
+{
+	if (!*str)
+		return ; 
+	free(*str);
+	*str = NULL;
+	return ;
+}
+
+/*
+int	main(void)
 {
 	int	fd;
 	char	*line;
 
-	int i = 1;
-	fd = open(argv[1], O_RDONLY);
+	fd = open("prueba_texto.txt", O_RDONLY);
 	if (fd == -1)
 		return (-1);
-	while ((line = get_next_line(fd)) != NULL)
+	line = get_next_line(fd);
+	while (line)
 	{
-		printf("line %i:%s\n", i, line);
+		printf("%s", line);
 		free(line);
-		i++;
+		line = NULL;
+		line = get_next_line(fd);
 	}
 	close(fd);
 }
+*/

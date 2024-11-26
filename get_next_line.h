@@ -32,5 +32,4 @@ int	check_newline(char *initial_buffer);
 void	ft_free(char **str);
 void	*ft_calloc(size_t nmemb, size_t size);
 void	ft_bzero(void *s, size_t n);
-
 #endif
